@@ -22,3 +22,9 @@
 
   :transitive dependency Map v0
     :from "github:savi-lang/Map"
+
+// A simple program used for integration testing, which pipes its stdin
+// into its stdout, and prints information about `IO.Action`s to stderr.
+:manifest bin "integration-pipe"
+  :copies StdIn
+  :sources "spec/integration/pipe/*.savi"

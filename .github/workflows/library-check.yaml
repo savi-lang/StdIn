@@ -42,3 +42,45 @@ jobs:
   #
   # Add any custom jobs you need below this comment.
   # The area above this comment is reserved for future standard jobs.
+
+  # Run some integration tests using a binary that writes its stdin to stdout,
+  # and prints information about `IO.Action`s to stderr.
+  integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: savi-lang/action-install@v1.0.0
+      - run: savi deps update --for integration-pipe
+      - run: savi build integration-pipe
+
+      - name: StdIn from simple file
+        run: |
+          bin/integration-pipe \
+            < spec/integration/pipe/fixtures/foo_bar.txt \
+            2> /tmp/stderr.txt \
+            | diff -u spec/integration/pipe/fixtures/foo_bar.txt -
+          echo 'IO.Action.Opened
+          IO.Action.Read
+          IO.Action.Closed' | diff -u - /tmp/stderr.txt
+
+      - name: StdIn from large file
+        run: |
+          bin/integration-pipe \
+            < spec/integration/pipe/fixtures/large.txt \
+            2> /tmp/stderr.txt \
+            | diff -u spec/integration/pipe/fixtures/large.txt -
+          echo 'IO.Action.Opened
+          IO.Action.Read
+          IO.Action.Read
+          IO.Action.Read
+          IO.Action.Closed' | diff -u - /tmp/stderr.txt
+
+      - name: StdIn from pipe with wait between lines
+        run: |
+          sh -c 'echo foo; sleep 0.5; echo bar' \
+            | bin/integration-pipe 2> /tmp/stderr.txt \
+            | diff -u spec/integration/pipe/fixtures/foo_bar.txt -
+          echo 'IO.Action.Opened
+          IO.Action.Read
+          IO.Action.Read
+          IO.Action.Closed' | diff -u - /tmp/stderr.txt
