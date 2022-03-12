@@ -9,10 +9,6 @@
 
   :let _actor IO.Actor(IO.Action)
 
-  :var _deferred_action_opened: False
-  :var _deferred_action_open_failed: False
-  :var _deferred_action_read: False
-
   :let read_stream: ByteStream.Reader.new
 
   :var _evented_core (IO.CoreEngine | None): None
@@ -26,12 +22,11 @@
   :fun ref run(ticket (StdIn.Ticket | None))
     if (ticket <: StdIn.Ticket) (
       @_ticket = --ticket
+      @_actor.io_deferred_action(IO.Action.Opened)
       @_setup_core
-      @_deferred_action_opened = True
     |
-      @_deferred_action_open_failed = True
+      @_actor.io_deferred_action(IO.Action.OpenFailed)
     )
-    @_actor.io_deferred_actions
 
   // TODO: Allow extracting the ticket with :fun ref dispose
   // Thus allowing you to read part of the stdin stream with one actor,
@@ -47,25 +42,22 @@
     // If we have no evented core, immediately begin reading by deferring
     // a read action, which will end up repeating until reading is done.
     if !@_has_evented_core (
-      @_deferred_action_read = True
+      @_actor.io_deferred_action(IO.Action.Read)
     )
 
-  :fun ref deferred_actions
-    // If we have a deferred action from opening, yield it now.
-    case (
-    | @_deferred_action_opened |
-      @_deferred_action_opened = False
-      yield IO.Action.Opened
-
-    | @_deferred_action_open_failed |
-      @_deferred_action_open_failed = False
-      yield IO.Action.OpenFailed
+  :fun ref deferred_action(action IO.Action)
+    evented_core = @_evented_core
+    if (evented_core <: IO.CoreEngine) (
+      evented_core.deferred_action(action) -> (action |
+        @_deferred_action(action) -> (action | yield action)
+      )
+    |
+      @_deferred_action(action) -> (action | yield action)
     )
+    @
 
-    if @_deferred_action_read (
-      @_deferred_action_read = False
-
-      // Try to read.
+  :fun ref _deferred_action(action IO.Action)
+    if (action == IO.Action.Read) (
       did_read = @_read_if_available
       if did_read (
         yield IO.Action.Read
@@ -77,15 +69,13 @@
           yield IO.Action.Closed
         )
       )
+    |
+      yield action
     )
 
-    // TODO: Enable this section:
-    // // If we have an evented core, run any deferred actions it needs to run.
-    // evented_core = @_evented_core
-    // if (evented_core <: IO.CoreEngine) (
-    //   evented_core.deferred_actions -> (action | yield action)
-    // )
-
+  // TODO: Remove in favor of the above method.
+  :fun ref deferred_actions
+    :yields IO.Action
     @
 
   :fun ref react(event CPointer(AsioEvent), flags U32, arg U32) @
@@ -127,8 +117,7 @@
     // If we read some amount of bytes, ask the actor to call us again soon,
     // so we can try again to read more bytes, until there's nothing to read.
     if did_read (
-      @_deferred_action_read = True
-      @_actor.io_deferred_actions
+      @_actor.io_deferred_action(IO.Action.Read)
     )
 
     did_read
