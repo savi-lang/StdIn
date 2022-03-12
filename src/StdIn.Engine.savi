@@ -73,11 +73,6 @@
       yield action
     )
 
-  // TODO: Remove in favor of the above method.
-  :fun ref deferred_actions
-    :yields IO.Action
-    @
-
   :fun ref react(event CPointer(AsioEvent), flags U32, arg U32) @
     :yields IO.Action for None
     evented_core = @_evented_core
