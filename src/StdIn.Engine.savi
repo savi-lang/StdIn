@@ -1,4 +1,4 @@
-:ffi LibPony
+:ffimodule LibPony
   :fun pony_os_stdin_setup Bool
   :fun pony_os_stdin_read(buffer CPointer(U8), size USize) USize
 
