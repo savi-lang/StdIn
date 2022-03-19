@@ -73,11 +73,11 @@
       yield action
     )
 
-  :fun ref react(event CPointer(AsioEvent), flags U32, arg U32) @
+  :fun ref react(event AsioEvent) @
     :yields IO.Action for None
     evented_core = @_evented_core
     if (evented_core <: IO.CoreEngine) (
-      evented_core.react(event, flags, arg) -> (action |
+      evented_core.react(event) -> (action |
         case action == (
         | IO.Action.Read | if @_read_if_available (yield IO.Action.Read)
         | yield action
