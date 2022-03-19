@@ -1,0 +1,3 @@
+:module _FFI
+  :ffi pony_os_stdin_setup Bool
+  :ffi pony_os_stdin_read(buffer CPointer(U8), size USize) USize
