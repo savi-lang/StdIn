@@ -1,3 +1,7 @@
 :module _FFI
+  :ffi pony_asio_event_create(
+    owner AsioEvent.Actor
+    fd U32, flags U32, nsec U64, noisy Bool
+  ) AsioEvent.ID
   :ffi pony_os_stdin_setup Bool
   :ffi pony_os_stdin_read(buffer CPointer(U8), size USize) USize
