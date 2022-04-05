@@ -32,8 +32,11 @@
     // We use an evented core only if `pony_os_stdin_setup` returns true.
     // We'll use a non-evented core on unix systems where the stdin fd comes
     // from a file instead of from a tty (which is properly evented).
-    @_evented_core =
-      if _FFI.pony_os_stdin_setup IO.CoreEngine.new_from_fd_r(@_actor, 0)
+    @_evented_core = if _FFI.pony_os_stdin_setup (
+      IO.CoreEngine.new(
+        _FFI.pony_asio_event_create(@_actor, 0, AsioEvent.Flags.read, 0, True)
+      )
+    )
 
     // If we have no evented core, immediately begin reading by deferring
     // a read action, which will end up repeating until reading is done.
