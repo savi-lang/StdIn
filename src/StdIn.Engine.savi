@@ -16,7 +16,7 @@
   :new (@_actor) // Note that we don't actually start until `run` is called
 
   :fun ref run(ticket (StdIn.Ticket | None))
-    if (ticket <: StdIn.Ticket) (
+    if ticket <: StdIn.Ticket (
       @_ticket = --ticket
       @_actor.io_deferred_action(IO.Action.Opened)
       @_setup_core
@@ -46,7 +46,7 @@
 
   :fun ref deferred_action(action IO.Action)
     evented_core = @_evented_core
-    if (evented_core <: IO.CoreEngine) (
+    if evented_core <: IO.CoreEngine (
       evented_core.deferred_action(action) -> (action |
         @_deferred_action(action) -> (action | yield action)
       )
@@ -56,7 +56,7 @@
     @
 
   :fun ref _deferred_action(action IO.Action)
-    if (action == IO.Action.Read) (
+    if action == IO.Action.Read (
       did_read = @_read_if_available
       if did_read (
         yield IO.Action.Read
@@ -75,7 +75,7 @@
   :fun ref react(event AsioEvent) @
     :yields IO.Action for None
     evented_core = @_evented_core
-    if (evented_core <: IO.CoreEngine) (
+    if evented_core <: IO.CoreEngine (
       evented_core.react(event) -> (action |
         case action == (
         | IO.Action.Read | if @_read_if_available (yield IO.Action.Read)
@@ -90,10 +90,10 @@
       bytes_read = @read_stream.receive_from!(@)
 
       // If we've reached the end of the stream, close things out.
-      if (bytes_read == 0) (
+      if bytes_read == 0 (
         // Close the evented core.
         evented_core = @_evented_core
-        if (evented_core <: IO.CoreEngine) (
+        if evented_core <: IO.CoreEngine (
           // TODO: We need to disentangle the core engine from TCP stuff,
           // because this function also tries to close the socket.
           // We only call this function here to unsubscribe the ASIO event.
@@ -120,7 +120,7 @@
   :fun ref emit_bytes_into!(read_buffer Bytes'ref) USize
     // Raise an error if there is no space left in the buffer.
     orig_size = read_buffer.size
-    if (orig_size == read_buffer.space) error!
+    if orig_size == read_buffer.space error!
 
     // Read into the buffer.
     bytes_read = _FFI.pony_os_stdin_read(
@@ -129,7 +129,7 @@
     )
 
     // Raise an error if there was nothing available to read right now.
-    if (bytes_read == -1) error!
+    if bytes_read == -1 error!
 
     // Update the size of the buffer with the newly filled bytes.
     new_size = orig_size + bytes_read
